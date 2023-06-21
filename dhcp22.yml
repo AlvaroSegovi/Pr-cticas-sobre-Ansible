@@ -1,0 +1,62 @@
+---
+- name: Servidor DHCP
+  hosts: localhost 
+  become: yes
+  vars_prompt:
+          - name: ip_red
+            prompt: Inserte la ip de la subred
+            private: no
+
+          - name: mascara_red
+            prompt: Inserte la mascara de la subred en decimal
+            private: no
+
+          - name: ip_servidor
+            prompt: Inserte la Ip del Servidor DHCP
+            private: no
+
+          - name: ip_broadcast
+            prompt: Inserte el broadcast
+            private: no
+
+          - name: ip_rango
+            prompt: Inserte el rango de direcciones IP (inicial  final)
+            private: no
+
+          - name: name_interfaz
+            prompt: Insertar el nombre de la intefaz de red
+            private: no
+
+  tasks:
+          - name: Instalacion de paquetes DCHP-SERVER
+            apt:
+                    name: isc-dhcp-server
+                    state: present
+
+          - name: Archivo /etc/default/isc-dhcp-server
+            lineinfile:
+                    path: /etc/default/isc-dhcp-server
+                    line: INTERFACESV4= {{name_interfaz}} 
+
+          - name: Configuración de direcciones IP
+            lineinfile:
+                    path: /etc/dhcp/dhcpd.conf
+                    #  regexp: '    '         
+                    line: subnet {{ip_red}} netmask {{mascara_red}} { 
+                          rango {{ip_rango}};
+                          option routers {{ip_servidor}};
+                          option broadcast-address {{ip_broadcast}};}
+                          default-lease-time 600;
+                          max-lease-time 7200;
+                    state: present
+                    create: yes
+                          
+
+          - name: Configuracion de interfaz de red
+            command: ifconfig {{name_interfaz}} {{ip_servidor}}
+
+          - name: Reiniciar el servidor DHCP
+            command: sudo service isc-dhcp-server restart            
+           
+            
+
